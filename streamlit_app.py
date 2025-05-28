@@ -1,51 +1,61 @@
 import streamlit as st
+import pickle
 from tensorflow.keras import Sequential
 from tensorflow.keras.layers import Embedding, Dense, GlobalAveragePooling1D
-
-st.title("Modèle Word2Vec")
-
-embedding_dim = 300
-model = Sequential()
-model.add(Embedding(vocab_size, embedding_dim))
-model.add(GlobalAveragePooling1D())
-model.add(Dense(vocab_size, activation='softmax'))
-
-model.load_weights("word2vec.h5")
-vectors = model.layers[0].trainable_weights[0].numpy()
 import numpy as np
 from sklearn.preprocessing import Normalizer
 
+st.title("Modèle Word2Vec")
+
+# ─── 1. Charger le Tokenizer et vocab_size ─────────────────────────────────────
+with open('tokenizer.pkl', 'rb') as f:
+    tokenizer = pickle.load(f)
+
+# tokenizer.num_words contient la taille du vocabulaire défini en Colab
+vocab_size = tokenizer.num_words
+
+# Pour les fonctions d'inférence
+word2idx = tokenizer.word_index
+idx2word = tokenizer.index_word
+
+# ─── 2. Reconstruire le modèle et charger les poids ────────────────────────────
+embedding_dim = 300
+model = Sequential([
+    Embedding(input_dim=vocab_size, output_dim=embedding_dim),
+    GlobalAveragePooling1D(),
+    Dense(vocab_size, activation='softmax')
+])
+model.load_weights("word2vec.h5")
+vectors = model.layers[0].get_weights()[0]  # shape = (vocab_size, embedding_dim)
+
+# ─── 3. Vos fonctions de similarité ────────────────────────────────────────────
 def dot_product(vec1, vec2):
-    return np.sum((vec1*vec2))
+    return np.sum(vec1 * vec2)
 
 def cosine_similarity(vec1, vec2):
-    return dot_product(vec1, vec2)/np.sqrt(dot_product(vec1, vec1)*dot_product(vec2, vec2))
+    return dot_product(vec1, vec2) / np.sqrt(dot_product(vec1, vec1) * dot_product(vec2, vec2))
 
 def find_closest(word_index, vectors, number_closest):
-    list1=[]
-    query_vector = vectors[word_index]
-    for index, vector in enumerate(vectors):
-        if not np.array_equal(vector, query_vector):
-            dist = cosine_similarity(vector, query_vector)
-            list1.append([dist,index])
-    return np.asarray(sorted(list1,reverse=True)[:number_closest])
-
-def compare(index_word1, index_word2, index_word3, vectors, number_closest):
-    list1=[]
-    query_vector = vectors[index_word1] - vectors[index_word2] + vectors[index_word3]
-    normalizer = Normalizer()
-    query_vector =  normalizer.fit_transform([query_vector], 'l2')
-    query_vector= query_vector[0]
-    for index, vector in enumerate(vectors):
-        if not np.array_equal(vector, query_vector):
-            dist = cosine_similarity(vector, query_vector)
-            list1.append([dist,index])
-    return np.asarray(sorted(list1,reverse=True)[:number_closest])
+    sims = []
+    query = vectors[word_index]
+    for i, vec in enumerate(vectors):
+        if i != word_index:
+            sims.append((cosine_similarity(query, vec), i))
+    sims.sort(reverse=True, key=lambda x: x[0])
+    return sims[:number_closest]
 
 def print_closest(word, number=10):
-    index_closest_words = find_closest(word2idx[word], vectors, number)
-    for index_word in index_closest_words :
-        print(idx2word[index_word[1]]," -- ",index_word[0])
+    idx = word2idx.get(word)
+    if idx is None or idx >= vocab_size:
+        st.write(f"Le mot « {word} » n’est pas dans le vocabulaire.")
+        return
+    for sim, i in find_closest(idx, vectors, number):
+        st.write(f"{idx2word[i]} — {sim:.4f}")
 
-#Exemple d'utilisation de la fonction print_closest
-print_closest('zombie')
+# ─── 4. Interface utilisateur ─────────────────────────────────────────────────
+mot = st.text_input("Entrez un mot :")
+k    = st.slider("Nombre de voisins à afficher", 1, 50, 10)
+
+if mot:
+    st.subheader(f"Les {k} mots les plus proches de « {mot} »")
+    print_closest(mot, k)
