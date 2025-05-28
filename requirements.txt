@@ -1,11 +1,16 @@
-tensorflow==2.15.0
-keras==2.15.0
-pandas==2.2.2
-numpy==1.26.4
-scikit-learn==1.4.2
-matplotlib==3.8.4
-seaborn==0.13.2
-nltk==3.8.1
-streamlit==1.32.2
-joblib==1.4.2
-#compatible python avant 3.13
+# Core app
+streamlit==1.45.1
+
+# Data processing
+pandas>=2.2.3
+numpy>=1.26.4
+scikit-learn>=1.4.2
+nltk>=3.8.1
+joblib>=1.5.0
+
+# Visualization
+matplotlib>=3.8.4
+seaborn>=0.13.2
+
+# TensorFlow (nightly build compatible Python 3.13)
+tf-nightly>=2.19.0rc0
