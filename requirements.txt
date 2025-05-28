@@ -1,10 +1,11 @@
-joblib==1.5.0
-keras==3.10.0
-matplotlib==3.10.3
-numpy==2.2.6
-pandas==2.2.3
-scikit_learn==1.6.1
+tensorflow==2.15.0
+keras==2.15.0
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.4.2
+matplotlib==3.8.4
 seaborn==0.13.2
-streamlit==1.45.1
-tensorflow
-nltk
+nltk==3.8.1
+streamlit==1.32.2
+joblib==1.4.2
+#compatible python avant 3.13
